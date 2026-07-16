@@ -1455,7 +1455,7 @@ final class PlaneBannerView: NSView {
         guard bounds.width > 0, bounds.height > 0 else { return }
 
         let groupWidth = adaptiveGroupWidth(in: bounds)
-        let groupHeight: CGFloat = 172 * settings.scale
+        let groupHeight = adaptiveGroupHeight()
         let eased = easeInOut(progress)
         let center = centerPoint(for: eased, in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
         let groupRect = NSRect(
@@ -1494,9 +1494,18 @@ final class PlaneBannerView: NSView {
         let bannerWidth = max(340, min(max(textWidth + 72, chipWidth + 54), min(760, bounds.width * 0.56)))
         switch vehicleEdge {
         case .top, .bottom:
-            return max(150, bannerWidth + 36)
+            return bannerWidth + 56
         case .left, .right:
-            return bannerWidth + 178
+            return bannerWidth + 112 + vehicleGap + 56
+        }
+    }
+
+    private func adaptiveGroupHeight() -> CGFloat {
+        switch vehicleEdge {
+        case .top, .bottom:
+            return 248 * settings.scale
+        case .left, .right:
+            return 172 * settings.scale
         }
     }
 
@@ -1615,12 +1624,13 @@ final class PlaneBannerView: NSView {
     private func drawVehicle(in bounds: NSRect) {
         guard let graphicsContext = NSGraphicsContext.current else { return }
         let vehicleRect = vehicleRect(in: bounds)
+        let orientationEdge = vehicleOrientationEdge
 
         graphicsContext.saveGraphicsState()
         let transform = NSAffineTransform()
         transform.translateX(by: vehicleRect.midX, yBy: vehicleRect.midY)
 
-        switch vehicleEdge {
+        switch orientationEdge {
         case .left:
             transform.scaleX(by: -1, yBy: 1)
         case .top:
@@ -1653,15 +1663,30 @@ final class PlaneBannerView: NSView {
     }
 
     private func vehicleRect(in bounds: NSRect) -> NSRect {
+        let bannerRect = bannerRect(in: bounds)
+
         switch vehicleEdge {
         case .left:
-            return NSRect(x: bounds.minX + 12, y: bounds.midY - 45, width: 112, height: 90)
+            return NSRect(x: bannerRect.minX - vehicleGap - 112, y: bounds.midY - 45, width: 112, height: 90)
         case .right:
-            return NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
+            return NSRect(x: bannerRect.maxX + vehicleGap, y: bounds.midY - 45, width: 112, height: 90)
         case .top:
-            return NSRect(x: bounds.midX - 56, y: bounds.maxY - 100, width: 112, height: 90)
+            return NSRect(x: bounds.midX - 56, y: bannerRect.maxY + vehicleGap, width: 112, height: 90)
         case .bottom:
-            return NSRect(x: bounds.midX - 56, y: bounds.minY + 10, width: 112, height: 90)
+            return NSRect(x: bounds.midX - 56, y: bannerRect.minY - vehicleGap - 90, width: 112, height: 90)
+        }
+    }
+
+    private func bannerRect(in bounds: NSRect) -> NSRect {
+        switch vehicleEdge {
+        case .left:
+            return NSRect(x: bounds.minX + 18 + 112 + vehicleGap, y: bounds.midY - 38, width: bounds.width - 36 - 112 - vehicleGap, height: 76)
+        case .right:
+            return NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 36 - 112 - vehicleGap, height: 76)
+        case .top:
+            return NSRect(x: bounds.minX + 18, y: bounds.minY + 18, width: bounds.width - 36, height: 76)
+        case .bottom:
+            return NSRect(x: bounds.minX + 18, y: bounds.maxY - 94, width: bounds.width - 36, height: 76)
         }
     }
 
@@ -1676,6 +1701,25 @@ final class PlaneBannerView: NSView {
         case .leftToRight, .random:
             return .right
         }
+    }
+
+    private var vehicleOrientationEdge: VehicleEdge {
+        guard settings.vehicle == .paperPlane else { return vehicleEdge }
+
+        switch vehicleEdge {
+        case .left:
+            return .right
+        case .right:
+            return .left
+        case .top:
+            return .bottom
+        case .bottom:
+            return .top
+        }
+    }
+
+    private var vehicleGap: CGFloat {
+        46
     }
 
     private func drawPlane(in planeRect: NSRect) {
@@ -1800,18 +1844,7 @@ final class PlaneBannerView: NSView {
 
     private func drawBanner(in bounds: NSRect) {
         let vehicleRect = vehicleRect(in: bounds)
-        let bannerRect: NSRect
-
-        switch vehicleEdge {
-        case .left:
-            bannerRect = NSRect(x: bounds.minX + 144, y: bounds.midY - 38, width: bounds.width - 162, height: 76)
-        case .right:
-            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 178, height: 76)
-        case .top:
-            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.minY + 8, width: bounds.width - 36, height: 76)
-        case .bottom:
-            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.maxY - 84, width: bounds.width - 36, height: 76)
-        }
+        let bannerRect = bannerRect(in: bounds)
 
         let shadowRect = bannerRect.offsetBy(dx: 0, dy: -7)
         let shadow = NSBezierPath(roundedRect: shadowRect, xRadius: 16, yRadius: 16)
