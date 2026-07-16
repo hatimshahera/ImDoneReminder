@@ -515,7 +515,9 @@ enum SettingsWindowFactory {
                 title: "Codex",
                 description: "Works for local Codex surfaces that load ~/.codex/config.toml hooks. Hosted/cloud-only sessions cannot call a command on your Mac.",
                 prompt: """
-                When you finish a coding task or need permission, rely on the configured ImDoneReminder hooks. Do not send personal data to the banner; keep labels to project/task names only.
+                I use ImDoneReminder on this Mac. When this chat finishes a coding task, trigger the done reminder through the configured Codex hook. When you need permission, approval, or user input, trigger the permission reminder through the configured Codex hook.
+
+                Keep reminder text short and private: use the project name or task name as the label, and use details like "done", "needs approval", or "needs input". Do not put secrets, file contents, API keys, personal data, or long chat text in the reminder.
                 """,
                 snippetTitle: "Paste into ~/.codex/config.toml",
                 snippet: """
@@ -537,7 +539,9 @@ enum SettingsWindowFactory {
                 title: "Claude Code",
                 description: "Works with Claude Code hooks on your Mac. The desktop/web chat app only works if it can run local hooks or shell commands.",
                 prompt: """
-                When you finish a coding task or need permission, use the configured ImDoneReminder hooks. Keep labels short and avoid secrets or private content in notification text.
+                I use ImDoneReminder on this Mac. When this Claude Code chat finishes a coding task, trigger the done reminder through the configured Claude Code hook. When you need permission, approval, or user input, trigger the permission reminder through the configured Claude Code hook.
+
+                Keep reminder text short and private: use the project name or task name as the label, and use details like "done", "needs approval", or "needs input". Do not put secrets, file contents, API keys, personal data, or long chat text in the reminder.
                 """,
                 snippetTitle: "Merge into ~/.claude/settings.json",
                 snippet: """
@@ -573,11 +577,13 @@ enum SettingsWindowFactory {
                 title: "Cursor",
                 description: "Use this as a Cursor rule or prompt. Cursor support depends on whether the agent can run local shell commands in your workspace.",
                 prompt: """
-                When you finish a coding task, run:
+                I use ImDoneReminder on this Mac. When this Cursor chat finishes a coding task, run:
                 \(script) done --source cursor --label "$(basename "$PWD")"
 
-                When you need permission or human input, run:
+                When you need permission, approval, or human input, run:
                 \(script) permission --source cursor --label "$(basename "$PWD")" --detail "needs input"
+
+                Keep reminder text short and private. Do not include secrets, file contents, API keys, personal data, or long chat text in the reminder.
                 """,
                 snippetTitle: "Manual commands",
                 snippet: """
@@ -589,7 +595,9 @@ enum SettingsWindowFactory {
                 title: "Generic CLI",
                 description: "Use with Aider, Gemini CLI, shell scripts, or any local agent that can run a command at completion.",
                 prompt: """
-                At the end of a coding task, run the done command below. If you need approval or input, run the permission command below. Use only a project/task label, not secrets.
+                I use ImDoneReminder on this Mac. At the end of a coding task, run the done command below. If you need permission, approval, or input, run the permission command below.
+
+                Keep reminder text short and private: use only a project/task label and a tiny status like "done" or "needs input". Do not include secrets, file contents, API keys, personal data, or long chat text.
                 """,
                 snippetTitle: "Commands",
                 snippet: """
@@ -1580,10 +1588,11 @@ final class PlaneBannerView: NSView {
 
     private func drawVehicle(in bounds: NSRect) {
         guard let graphicsContext = NSGraphicsContext.current else { return }
+        let vehicleRect = vehicleRect(in: bounds)
 
         graphicsContext.saveGraphicsState()
         let transform = NSAffineTransform()
-        transform.translateX(by: bounds.midX, yBy: bounds.midY)
+        transform.translateX(by: vehicleRect.midX, yBy: vehicleRect.midY)
 
         switch vehicleEdge {
         case .left:
@@ -1596,24 +1605,37 @@ final class PlaneBannerView: NSView {
             break
         }
 
-        transform.translateX(by: -bounds.midX, yBy: -bounds.midY)
+        transform.translateX(by: -vehicleRect.midX, yBy: -vehicleRect.midY)
         transform.concat()
-        drawVehicleShape(in: bounds)
+        drawVehicleShape(in: vehicleRect)
         graphicsContext.restoreGraphicsState()
     }
 
-    private func drawVehicleShape(in bounds: NSRect) {
+    private func drawVehicleShape(in vehicleRect: NSRect) {
         switch settings.vehicle {
         case .paperPlane:
-            drawPlane(in: bounds)
+            drawPlane(in: vehicleRect)
         case .rocket:
-            drawRocket(in: bounds)
+            drawRocket(in: vehicleRect)
         case .blimp:
-            drawBlimp(in: bounds)
+            drawBlimp(in: vehicleRect)
         case .kite:
-            drawKite(in: bounds)
+            drawKite(in: vehicleRect)
         case .comet:
-            drawComet(in: bounds)
+            drawComet(in: vehicleRect)
+        }
+    }
+
+    private func vehicleRect(in bounds: NSRect) -> NSRect {
+        switch vehicleEdge {
+        case .left:
+            return NSRect(x: bounds.minX + 12, y: bounds.midY - 45, width: 112, height: 90)
+        case .right:
+            return NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
+        case .top:
+            return NSRect(x: bounds.midX - 56, y: bounds.maxY - 100, width: 112, height: 90)
+        case .bottom:
+            return NSRect(x: bounds.midX - 56, y: bounds.minY + 10, width: 112, height: 90)
         }
     }
 
@@ -1630,9 +1652,7 @@ final class PlaneBannerView: NSView {
         }
     }
 
-    private func drawPlane(in bounds: NSRect) {
-        let planeRect = NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
-
+    private func drawPlane(in planeRect: NSRect) {
         let shadow = NSBezierPath()
         shadow.move(to: NSPoint(x: planeRect.minX + 10, y: planeRect.midY - 4))
         shadow.line(to: NSPoint(x: planeRect.maxX - 4, y: planeRect.maxY - 8))
@@ -1665,8 +1685,8 @@ final class PlaneBannerView: NSView {
         fold.stroke()
     }
 
-    private func drawRocket(in bounds: NSRect) {
-        let rect = NSRect(x: bounds.maxX - 126, y: bounds.midY - 35, width: 110, height: 70)
+    private func drawRocket(in vehicleRect: NSRect) {
+        let rect = vehicleRect.insetBy(dx: 1, dy: 10)
         let body = NSBezierPath(roundedRect: NSRect(x: rect.minX + 18, y: rect.minY + 12, width: 72, height: 46), xRadius: 23, yRadius: 23)
         NSColor(calibratedRed: 0.97, green: 0.98, blue: 1, alpha: 1).setFill()
         body.fill()
@@ -1692,8 +1712,8 @@ final class PlaneBannerView: NSView {
         flame.fill()
     }
 
-    private func drawBlimp(in bounds: NSRect) {
-        let rect = NSRect(x: bounds.maxX - 138, y: bounds.midY - 38, width: 124, height: 76)
+    private func drawBlimp(in vehicleRect: NSRect) {
+        let rect = vehicleRect.insetBy(dx: -6, dy: 7)
         let body = NSBezierPath(ovalIn: NSRect(x: rect.minX, y: rect.minY + 12, width: 112, height: 52))
         NSColor(calibratedRed: 0.96, green: 0.99, blue: 1, alpha: 1).setFill()
         body.fill()
@@ -1709,8 +1729,8 @@ final class PlaneBannerView: NSView {
         cabin.stroke()
     }
 
-    private func drawKite(in bounds: NSRect) {
-        let rect = NSRect(x: bounds.maxX - 118, y: bounds.midY - 46, width: 92, height: 92)
+    private func drawKite(in vehicleRect: NSRect) {
+        let rect = NSRect(x: vehicleRect.midX - 46, y: vehicleRect.midY - 46, width: 92, height: 92)
         let kite = NSBezierPath()
         kite.move(to: NSPoint(x: rect.midX, y: rect.maxY))
         kite.line(to: NSPoint(x: rect.maxX, y: rect.midY))
@@ -1733,8 +1753,8 @@ final class PlaneBannerView: NSView {
         cross.stroke()
     }
 
-    private func drawComet(in bounds: NSRect) {
-        let rect = NSRect(x: bounds.maxX - 124, y: bounds.midY - 38, width: 110, height: 76)
+    private func drawComet(in vehicleRect: NSRect) {
+        let rect = vehicleRect.insetBy(dx: 1, dy: 7)
         let tail = NSBezierPath()
         tail.move(to: NSPoint(x: rect.minX, y: rect.midY))
         tail.line(to: NSPoint(x: rect.minX + 56, y: rect.maxY - 8))
@@ -1753,21 +1773,17 @@ final class PlaneBannerView: NSView {
     }
 
     private func drawBanner(in bounds: NSRect) {
-        let vehicleRect: NSRect
+        let vehicleRect = vehicleRect(in: bounds)
         let bannerRect: NSRect
 
         switch vehicleEdge {
         case .left:
-            vehicleRect = NSRect(x: bounds.minX + 12, y: bounds.midY - 45, width: 112, height: 90)
             bannerRect = NSRect(x: bounds.minX + 144, y: bounds.midY - 38, width: bounds.width - 162, height: 76)
         case .right:
-            vehicleRect = NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
             bannerRect = NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 178, height: 76)
         case .top:
-            vehicleRect = NSRect(x: bounds.midX - 56, y: bounds.maxY - 100, width: 112, height: 90)
             bannerRect = NSRect(x: bounds.minX + 18, y: bounds.minY + 8, width: bounds.width - 36, height: 76)
         case .bottom:
-            vehicleRect = NSRect(x: bounds.midX - 56, y: bounds.minY + 10, width: 112, height: 90)
             bannerRect = NSRect(x: bounds.minX + 18, y: bounds.maxY - 84, width: bounds.width - 36, height: 76)
         }
 
