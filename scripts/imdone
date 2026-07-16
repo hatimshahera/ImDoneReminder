@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import os
+import socket
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+
+
+DEFAULT_URL = "http://127.0.0.1:47777/notify"
+STATE_PATH = os.path.join(tempfile.gettempdir(), "imdone_reminder_state.json")
+
+
+def read_hook_payload():
+    raw = sys.stdin.read()
+    if not raw.strip():
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return {"detail": raw.strip()[:180]}
+
+
+def infer_label(args, hook_payload):
+    if args.label:
+        return args.label
+
+    for key in ("cwd", "transcript_path"):
+        value = hook_payload.get(key)
+        if isinstance(value, str) and value.strip():
+            if key == "transcript_path":
+                return os.path.basename(os.path.dirname(value)) or os.path.basename(value)
+            return os.path.basename(value.rstrip("/")) or value
+
+    return os.path.basename(os.getcwd())
+
+
+def event_from_args(args):
+    hook_payload = read_hook_payload() if args.read_stdin else {}
+    event = args.event
+
+    hook_event_name = hook_payload.get("hook_event_name")
+    if args.event == "auto" and isinstance(hook_event_name, str):
+        lowered = hook_event_name.lower()
+        if "permission" in lowered or "approval" in lowered:
+            event = "permission"
+        else:
+            event = "done"
+    elif args.event == "auto":
+        event = "done"
+
+    detail = args.detail
+    if not detail and event == "permission":
+        tool_name = hook_payload.get("tool_name")
+        permission_mode = hook_payload.get("permission_mode")
+        if tool_name and permission_mode:
+            detail = f"{tool_name} approval requested"
+        elif tool_name:
+            detail = f"{tool_name} needs approval"
+        else:
+            detail = "approval requested"
+
+    return {
+        "source": args.source,
+        "event": event,
+        "label": infer_label(args, hook_payload),
+        "detail": detail,
+        "cwd": hook_payload.get("cwd") or os.getcwd(),
+        "sessionId": hook_payload.get("session_id"),
+        "turnId": hook_payload.get("turn_id"),
+    }
+
+
+def should_suppress(payload, cooldown_seconds):
+    if payload.get("event") != "permission" or cooldown_seconds <= 0:
+        return False
+
+    key = "|".join(
+        str(payload.get(part) or "")
+        for part in ("source", "label", "cwd", "sessionId", "turnId", "detail")
+    )
+    now = time.time()
+
+    try:
+        with open(STATE_PATH, "r", encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        state = {}
+
+    last_seen = float(state.get(key, 0))
+    if now - last_seen < cooldown_seconds:
+        return True
+
+    state[key] = now
+    for old_key, timestamp in list(state.items()):
+        try:
+            if now - float(timestamp) > 24 * 60 * 60:
+                del state[old_key]
+        except (TypeError, ValueError):
+            del state[old_key]
+
+    try:
+        with open(STATE_PATH, "w", encoding="utf-8") as handle:
+            json.dump(state, handle)
+    except OSError:
+        pass
+
+    return False
+
+
+def notify(payload, url):
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=1.5) as response:
+        response.read()
+
+
+def fallback_notification(payload):
+    title = f"{payload.get('source', 'Agent').title()} {payload.get('event', 'done')}"
+    label = payload.get("label") or "this chat"
+    message = f"{label} needs attention" if payload.get("event") == "permission" else f"{label} finished coding"
+    os.system(
+        "osascript -e "
+        + json.dumps(f'display notification {json.dumps(message)} with title {json.dumps(title)}')
+        + " >/dev/null 2>&1"
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Trigger the ImDoneReminder macOS banner.")
+    parser.add_argument("event", nargs="?", default="done", choices=["done", "permission", "error", "auto"])
+    parser.add_argument("--source", default="agent", help="codex, claude, or another agent name")
+    parser.add_argument("--label", help="Human-readable chat/project label")
+    parser.add_argument("--detail", help="Short extra detail shown on the banner")
+    parser.add_argument("--url", default=os.environ.get("IMDONE_URL", DEFAULT_URL))
+    parser.add_argument("--read-stdin", action="store_true", help="Read Claude/Codex hook JSON from stdin")
+    parser.add_argument("--permission-cooldown", type=float, default=120, help="Suppress repeated permission banners for this many seconds")
+    parser.add_argument("--fallback-notification", action="store_true", help="Show a macOS notification if the overlay app is not running")
+    args = parser.parse_args()
+
+    payload = event_from_args(args)
+    if should_suppress(payload, args.permission_cooldown):
+        return
+
+    try:
+        notify(payload, args.url)
+    except (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError):
+        if args.fallback_notification:
+            fallback_notification(payload)
+
+
+if __name__ == "__main__":
+    main()

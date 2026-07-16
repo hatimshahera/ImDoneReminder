@@ -1,0 +1,33 @@
+# Add this to ~/.codex/config.toml.
+#
+# The notify command is the simplest Codex integration because Codex calls it on
+# agent-turn-complete. Keep the absolute path updated to match your checkout.
+
+notify = [
+  "<path-to-Im_done_reminder>/scripts/imdone",
+  "done",
+  "--source",
+  "codex",
+  "--label",
+  "Codex chat"
+]
+
+# Optional: Codex's built-in terminal notifications can also include approval
+# prompts. This is separate from the custom flying banner.
+#
+# [tui]
+# notifications = ["agent-turn-complete", "approval-requested"]
+#
+# Optional: if you prefer lifecycle hooks, add an inline Stop hook after
+# trusting hooks with /hooks in Codex.
+#
+# [hooks]
+# [[hooks.Stop]]
+# matcher = "*"
+# [[hooks.Stop.hooks]]
+# command = "<path-to-Im_done_reminder>/scripts/imdone auto --source codex --read-stdin"
+#
+# [[hooks.PermissionRequest]]
+# matcher = "*"
+# [[hooks.PermissionRequest.hooks]]
+# command = "<path-to-Im_done_reminder>/scripts/imdone permission --source codex --read-stdin --permission-cooldown 120"

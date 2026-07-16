@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<path-to-Im_done_reminder>/scripts/imdone permission --source claude --read-stdin --permission-cooldown 120"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<path-to-Im_done_reminder>/scripts/imdone auto --source claude --read-stdin"
+          }
+        ]
+      }
+    ]
+  }
+}
