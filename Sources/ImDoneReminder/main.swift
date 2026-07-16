@@ -18,11 +18,11 @@ struct ReminderEvent: Codable, Sendable {
     var eventLabel: String {
         switch clean(event)?.lowercased() {
         case "permission", "approval", "needs-permission":
-            return "needs permission"
+            return "needs approval"
         case "error", "failed":
-            return "needs attention"
+            return "attention"
         default:
-            return "finished coding"
+            return "done"
         }
     }
 
@@ -1439,7 +1439,7 @@ final class PlaneBannerView: NSView {
 
         guard bounds.width > 0, bounds.height > 0 else { return }
 
-        let groupWidth = min(980, max(700, bounds.width * 0.68)) * settings.scale
+        let groupWidth = min(1080, max(760, bounds.width * 0.74)) * settings.scale
         let groupHeight: CGFloat = 172 * settings.scale
         let eased = easeInOut(progress)
         let center = centerPoint(for: eased, in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
@@ -1747,16 +1747,16 @@ final class PlaneBannerView: NSView {
         rope.stroke()
 
         let banner = NSBezierPath(roundedRect: bannerRect, xRadius: 16, yRadius: 16)
-        NSColor(calibratedRed: 1.0, green: 0.985, blue: 0.90, alpha: 0.98).setFill()
+        NSColor(calibratedRed: 0.99, green: 0.995, blue: 1.0, alpha: 0.99).setFill()
         banner.fill()
-        accentColor.setStroke()
+        accentColor.withAlphaComponent(0.9).setStroke()
         banner.lineWidth = 3
         banner.stroke()
 
         let accentStripe = NSBezierPath(
-            roundedRect: NSRect(x: bannerRect.minX + 10, y: bannerRect.minY + 10, width: 14, height: bannerRect.height - 20),
-            xRadius: 7,
-            yRadius: 7
+            roundedRect: NSRect(x: bannerRect.minX + 8, y: bannerRect.minY + 8, width: 18, height: bannerRect.height - 16),
+            xRadius: 9,
+            yRadius: 9
         )
         chatColor.setFill()
         accentStripe.fill()
@@ -1801,8 +1801,8 @@ final class PlaneBannerView: NSView {
         paragraph.lineBreakMode = .byTruncatingMiddle
 
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: settings.textSize, weight: .bold),
-            .foregroundColor: NSColor(calibratedWhite: 0.1, alpha: 1),
+            .font: NSFont.systemFont(ofSize: max(18, settings.textSize - 2), weight: .semibold),
+            .foregroundColor: NSColor(calibratedWhite: 0.055, alpha: 1),
             .paragraphStyle: paragraph
         ]
 
