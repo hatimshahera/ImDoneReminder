@@ -515,9 +515,28 @@ enum SettingsWindowFactory {
                 title: "Codex",
                 description: "Works for local Codex surfaces that load ~/.codex/config.toml hooks. Hosted/cloud-only sessions cannot call a command on your Mac.",
                 prompt: """
-                I use ImDoneReminder on this Mac. When this chat finishes a coding task, trigger the done reminder through the configured Codex hook. When you need permission, approval, or user input, trigger the permission reminder through the configured Codex hook.
+                Please set up ImDoneReminder for Codex on this Mac.
 
-                Keep reminder text short and private: use the project name or task name as the label, and use details like "done", "needs approval", or "needs input". Do not put secrets, file contents, API keys, personal data, or long chat text in the reminder.
+                1. Open or create ~/.codex/config.toml.
+                2. Preserve any existing settings.
+                3. Make sure [features] has hooks = true.
+                4. Add these hooks if they are not already present:
+
+                [features]
+                hooks = true
+
+                [[hooks.Stop]]
+                matcher = "*"
+                [[hooks.Stop.hooks]]
+                command = "\(script) auto --source codex --read-stdin"
+
+                [[hooks.PermissionRequest]]
+                matcher = "*"
+                [[hooks.PermissionRequest.hooks]]
+                command = "\(script) permission --source codex --read-stdin --permission-cooldown 120"
+
+                Do not overwrite unrelated config. After editing, tell me what changed and run a quick test command if possible:
+                \(script) done --source codex --label "setup test" --detail "done"
                 """,
                 snippetTitle: "Paste into ~/.codex/config.toml",
                 snippet: """
@@ -539,9 +558,41 @@ enum SettingsWindowFactory {
                 title: "Claude Code",
                 description: "Works with Claude Code hooks on your Mac. The desktop/web chat app only works if it can run local hooks or shell commands.",
                 prompt: """
-                I use ImDoneReminder on this Mac. When this Claude Code chat finishes a coding task, trigger the done reminder through the configured Claude Code hook. When you need permission, approval, or user input, trigger the permission reminder through the configured Claude Code hook.
+                Please set up ImDoneReminder for Claude Code on this Mac.
 
-                Keep reminder text short and private: use the project name or task name as the label, and use details like "done", "needs approval", or "needs input". Do not put secrets, file contents, API keys, personal data, or long chat text in the reminder.
+                1. Open or create ~/.claude/settings.json.
+                2. Preserve any existing settings.
+                3. Merge in these hooks without deleting other Claude settings:
+
+                {
+                  "hooks": {
+                    "PermissionRequest": [
+                      {
+                        "matcher": "*",
+                        "hooks": [
+                          {
+                            "type": "command",
+                            "command": "\(script) permission --source claude --read-stdin --permission-cooldown 120"
+                          }
+                        ]
+                      }
+                    ],
+                    "Stop": [
+                      {
+                        "matcher": "*",
+                        "hooks": [
+                          {
+                            "type": "command",
+                            "command": "\(script) auto --source claude --read-stdin"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+
+                After editing, tell me what changed and run a quick test command if possible:
+                \(script) done --source claude --label "setup test" --detail "done"
                 """,
                 snippetTitle: "Merge into ~/.claude/settings.json",
                 snippet: """
@@ -577,13 +628,27 @@ enum SettingsWindowFactory {
                 title: "Cursor",
                 description: "Use this as a Cursor rule or prompt. Cursor support depends on whether the agent can run local shell commands in your workspace.",
                 prompt: """
-                I use ImDoneReminder on this Mac. When this Cursor chat finishes a coding task, run:
+                Please set up ImDoneReminder guidance for this Cursor workspace.
+
+                1. Create .cursor/rules/imdone-reminder.mdc if it does not exist.
+                2. Preserve any existing Cursor rules.
+                3. Add this rule:
+
+                ---
+                description: Trigger ImDoneReminder when Cursor agent work finishes or needs user input.
+                alwaysApply: true
+                ---
+
+                When a coding task finishes, run:
                 \(script) done --source cursor --label "$(basename "$PWD")"
 
-                When you need permission, approval, or human input, run:
+                When permission, approval, or human input is needed, run:
                 \(script) permission --source cursor --label "$(basename "$PWD")" --detail "needs input"
 
-                Keep reminder text short and private. Do not include secrets, file contents, API keys, personal data, or long chat text in the reminder.
+                Keep reminder text short and private. Do not include secrets, file contents, API keys, personal data, or long chat text.
+
+                After editing, tell me what changed and run a quick test command if possible:
+                \(script) done --source cursor --label "setup test" --detail "done"
                 """,
                 snippetTitle: "Manual commands",
                 snippet: """
@@ -595,9 +660,20 @@ enum SettingsWindowFactory {
                 title: "Generic CLI",
                 description: "Use with Aider, Gemini CLI, shell scripts, or any local agent that can run a command at completion.",
                 prompt: """
-                I use ImDoneReminder on this Mac. At the end of a coding task, run the done command below. If you need permission, approval, or input, run the permission command below.
+                Please set up this local coding agent or project to use ImDoneReminder.
 
-                Keep reminder text short and private: use only a project/task label and a tiny status like "done" or "needs input". Do not include secrets, file contents, API keys, personal data, or long chat text.
+                If this tool supports hooks, completion scripts, rules, or post-task commands, configure it so:
+
+                - when a coding task finishes, it runs:
+                  \(script) done --source agent --label "$(basename "$PWD")"
+
+                - when permission, approval, or human input is needed, it runs:
+                  \(script) permission --source agent --label "$(basename "$PWD")" --detail "approval requested"
+
+                Preserve existing project settings. Do not put secrets, file contents, API keys, personal data, or long chat text in reminder labels/details.
+
+                After editing, tell me what changed and run a quick test command if possible:
+                \(script) done --source agent --label "setup test" --detail "done"
                 """,
                 snippetTitle: "Commands",
                 snippet: """
@@ -1054,7 +1130,7 @@ final class SetupGuideView: NSView {
 
         stack.addArrangedSubview(title)
         stack.addArrangedSubview(description)
-        stack.addArrangedSubview(codeSection(title: "Prompt to paste into the coding tool", text: page.prompt, height: 128))
+        stack.addArrangedSubview(codeSection(title: "Prompt to paste into the coding tool", text: page.prompt, height: 260))
         stack.addArrangedSubview(codeSection(title: page.snippetTitle, text: page.snippet, height: 210))
         return stack
     }
