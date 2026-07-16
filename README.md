@@ -1,5 +1,7 @@
 # ImDoneReminder
 
+Version: 0.1.0
+
 ImDoneReminder is a lightweight macOS menu bar app. When Codex, Claude Code, Cursor, or another local coding agent finishes a task or needs attention, it can show a flying banner across your screen.
 
 I built this because I kept losing track of my coding agents. I would start Codex or Claude Code, switch tabs while it worked, end up on YouTube or doomscrolling, and then forget it was waiting for me to approve something or check the finished result.
@@ -9,8 +11,8 @@ I was inspired by [conniexu444/meeting-reminder](https://github.com/conniexu444/
 ## Run
 
 ```bash
-git clone <repo-url>
-cd Im_done_reminder
+git clone https://github.com/hatimshahera/ImDoneReminder.git
+cd ImDoneReminder
 swift run ImDoneReminder
 ```
 
