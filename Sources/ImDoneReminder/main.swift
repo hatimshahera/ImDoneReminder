@@ -1439,7 +1439,7 @@ final class PlaneBannerView: NSView {
 
         guard bounds.width > 0, bounds.height > 0 else { return }
 
-        let groupWidth = min(1080, max(760, bounds.width * 0.74)) * settings.scale
+        let groupWidth = adaptiveGroupWidth(in: bounds) * settings.scale
         let groupHeight: CGFloat = 172 * settings.scale
         let eased = easeInOut(progress)
         let center = centerPoint(for: eased, in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
@@ -1452,23 +1452,32 @@ final class PlaneBannerView: NSView {
 
         drawFlightPath(in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
 
-        let derivative = derivativePoint(for: eased, in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
-        let angle = atan2(derivative.y, derivative.x)
         let alpha = min(1, progress / 0.08) * min(1, (1 - progress) / 0.08)
 
         guard let graphicsContext = NSGraphicsContext.current else { return }
         graphicsContext.saveGraphicsState()
         graphicsContext.cgContext.setAlpha(alpha)
 
-        let transform = NSAffineTransform()
-        transform.translateX(by: groupRect.midX, yBy: groupRect.midY)
-        transform.rotate(byRadians: angle)
-        transform.translateX(by: -groupRect.midX, yBy: -groupRect.midY)
-        transform.concat()
-
         drawBanner(in: groupRect)
         drawVehicle(in: groupRect)
         graphicsContext.restoreGraphicsState()
+    }
+
+    private func adaptiveGroupWidth(in bounds: NSRect) -> CGFloat {
+        let textFont = NSFont.systemFont(ofSize: max(18, settings.textSize - 2), weight: .semibold)
+        let textWidth = (bannerLine as NSString).size(withAttributes: [.font: textFont]).width
+
+        var chipWidth: CGFloat = 0
+        if settings.showSource {
+            chipWidth += min(128, max(76, CGFloat(event.sourceLabel.count * 10 + 34))) + 8
+        }
+        let chatText = chatChipText()
+        if !chatText.isEmpty {
+            chipWidth += min(240, max(86, CGFloat(chatText.count) * 7.5 + 42))
+        }
+
+        let bannerWidth = max(420, min(max(textWidth + 72, chipWidth + 54), min(820, bounds.width * 0.62)))
+        return bannerWidth + 198
     }
 
     private func easeInOut(_ value: CGFloat) -> CGFloat {
@@ -1765,13 +1774,13 @@ final class PlaneBannerView: NSView {
         chipParagraph.alignment = .center
         var chipX = bannerRect.minX + 38
         if settings.showSource {
-            let sourceChipRect = NSRect(x: chipX, y: bannerRect.maxY - 29, width: min(128, max(76, CGFloat(event.sourceLabel.count * 10 + 34))), height: 22)
-            let chip = NSBezierPath(roundedRect: sourceChipRect, xRadius: 11, yRadius: 11)
-            accentColor.withAlphaComponent(0.16).setFill()
+            let sourceChipRect = NSRect(x: chipX, y: bannerRect.maxY - 31, width: min(128, max(76, CGFloat(event.sourceLabel.count * 10 + 34))), height: 24)
+            let chip = NSBezierPath(roundedRect: sourceChipRect, xRadius: 12, yRadius: 12)
+            accentColor.withAlphaComponent(0.22).setFill()
             chip.fill()
 
-            event.sourceLabel.uppercased().draw(in: sourceChipRect.insetBy(dx: 10, dy: 4), withAttributes: [
-                .font: NSFont.systemFont(ofSize: 10, weight: .heavy),
+            event.sourceLabel.uppercased().draw(in: sourceChipRect.insetBy(dx: 10, dy: 5), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .heavy),
                 .foregroundColor: accentColor,
                 .paragraphStyle: chipParagraph
             ])
@@ -1780,25 +1789,25 @@ final class PlaneBannerView: NSView {
 
         let chatChipText = chatChipText()
         if !chatChipText.isEmpty {
-            let chatChipRect = NSRect(x: chipX, y: bannerRect.maxY - 29, width: min(210, max(72, CGFloat(chatChipText.count * 7 + 38))), height: 22)
-            let chatChip = NSBezierPath(roundedRect: chatChipRect, xRadius: 11, yRadius: 11)
-            chatColor.withAlphaComponent(0.18).setFill()
+            let chatChipRect = NSRect(x: chipX, y: bannerRect.maxY - 31, width: min(240, max(86, CGFloat(chatChipText.count) * 7.5 + 42)), height: 24)
+            let chatChip = NSBezierPath(roundedRect: chatChipRect, xRadius: 12, yRadius: 12)
+            chatColor.withAlphaComponent(0.26).setFill()
             chatChip.fill()
 
-            let dot = NSBezierPath(ovalIn: NSRect(x: chatChipRect.minX + 8, y: chatChipRect.midY - 4, width: 8, height: 8))
+            let dot = NSBezierPath(ovalIn: NSRect(x: chatChipRect.minX + 9, y: chatChipRect.midY - 4, width: 8, height: 8))
             chatColor.setFill()
             dot.fill()
 
-            chatChipText.draw(in: NSRect(x: chatChipRect.minX + 22, y: chatChipRect.minY + 4, width: chatChipRect.width - 30, height: 14), withAttributes: [
-                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
-                .foregroundColor: NSColor(calibratedWhite: 0.12, alpha: 0.88),
+            chatChipText.draw(in: NSRect(x: chatChipRect.minX + 24, y: chatChipRect.minY + 5, width: chatChipRect.width - 32, height: 14), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: NSColor(calibratedWhite: 0.08, alpha: 0.94),
                 .paragraphStyle: chipParagraph
             ])
         }
 
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .left
-        paragraph.lineBreakMode = .byTruncatingMiddle
+        paragraph.lineBreakMode = .byTruncatingTail
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: max(18, settings.textSize - 2), weight: .semibold),
