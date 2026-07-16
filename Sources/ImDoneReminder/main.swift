@@ -740,7 +740,7 @@ enum SettingsWindowFactory {
         stack.addArrangedSubview(sliderRow(label: "Text size", min: 16, max: 36, value: settings.textSize, suffix: "pt") { value in
             ReminderSettings.setTextSize(value)
         })
-        stack.addArrangedSubview(sliderRow(label: "Banner size", min: 0.75, max: 1.25, value: settings.scale, suffix: "x") { value in
+        stack.addArrangedSubview(sliderRow(label: "Flight size", min: 0.75, max: 1.25, value: settings.scale, suffix: "x") { value in
             ReminderSettings.setScale(value)
         })
 
@@ -1439,7 +1439,7 @@ final class PlaneBannerView: NSView {
 
         guard bounds.width > 0, bounds.height > 0 else { return }
 
-        let groupWidth = adaptiveGroupWidth(in: bounds) * settings.scale
+        let groupWidth = adaptiveGroupWidth(in: bounds)
         let groupHeight: CGFloat = 172 * settings.scale
         let eased = easeInOut(progress)
         let center = centerPoint(for: eased, in: bounds, groupWidth: groupWidth, groupHeight: groupHeight)
