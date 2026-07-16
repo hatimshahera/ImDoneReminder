@@ -1184,55 +1184,29 @@ enum AppIconFactory {
         NSColor.clear.setFill()
         NSRect(x: 0, y: 0, width: 22, height: 22).fill()
 
+        let planeRect = NSRect(x: 2.5, y: 4.2, width: 17.5, height: 13.6)
         let plane = NSBezierPath()
-        plane.move(to: NSPoint(x: 3.5, y: 11.5))
-        plane.line(to: NSPoint(x: 18.8, y: 17.2))
-        plane.curve(
-            to: NSPoint(x: 13.9, y: 5.1),
-            controlPoint1: NSPoint(x: 20.0, y: 17.7),
-            controlPoint2: NSPoint(x: 20.2, y: 16.7)
-        )
-        plane.line(to: NSPoint(x: 10.8, y: 8.4))
-        plane.line(to: NSPoint(x: 7.8, y: 4.4))
-        plane.curve(
-            to: NSPoint(x: 6.3, y: 5.1),
-            controlPoint1: NSPoint(x: 7.2, y: 3.7),
-            controlPoint2: NSPoint(x: 6.3, y: 4.1)
-        )
-        plane.line(to: NSPoint(x: 5.6, y: 9.0))
-        plane.line(to: NSPoint(x: 3.2, y: 10.0))
-        plane.curve(
-            to: NSPoint(x: 3.5, y: 11.5),
-            controlPoint1: NSPoint(x: 2.3, y: 10.4),
-            controlPoint2: NSPoint(x: 2.5, y: 11.3)
-        )
+        plane.move(to: NSPoint(x: planeRect.minX + 0.8, y: planeRect.midY))
+        plane.line(to: NSPoint(x: planeRect.maxX - 0.8, y: planeRect.maxY - 1.2))
+        plane.line(to: NSPoint(x: planeRect.maxX - 4.8, y: planeRect.midY + 0.8))
+        plane.line(to: NSPoint(x: planeRect.maxX - 0.8, y: planeRect.minY + 1.2))
         plane.close()
         NSColor.labelColor.setFill()
         plane.fill()
 
         let fold = NSBezierPath()
-        fold.move(to: NSPoint(x: 8.0, y: 5.0))
-        fold.line(to: NSPoint(x: 12.5, y: 12.9))
-        fold.line(to: NSPoint(x: 7.1, y: 9.2))
+        fold.move(to: NSPoint(x: planeRect.minX + 2.6, y: planeRect.midY))
+        fold.line(to: NSPoint(x: planeRect.maxX - 4.8, y: planeRect.midY + 0.8))
+        fold.line(to: NSPoint(x: planeRect.maxX - 7.6, y: planeRect.midY - 3.0))
         fold.lineJoinStyle = .round
         NSColor.controlBackgroundColor.withAlphaComponent(0.82).setStroke()
-        fold.lineWidth = 1.7
+        fold.lineWidth = 1.5
         fold.stroke()
 
-        let check = NSBezierPath()
-        check.move(to: NSPoint(x: 11.4, y: 9.4))
-        check.line(to: NSPoint(x: 13.0, y: 7.8))
-        check.line(to: NSPoint(x: 16.0, y: 12.0))
-        check.lineCapStyle = .round
-        check.lineJoinStyle = .round
-        NSColor.controlBackgroundColor.withAlphaComponent(0.82).setStroke()
-        check.lineWidth = 1.8
-        check.stroke()
-
         let trails = NSBezierPath()
-        trails.move(to: NSPoint(x: 1.7, y: 7.2))
-        trails.curve(to: NSPoint(x: 5.1, y: 8.3), controlPoint1: NSPoint(x: 2.8, y: 7.0), controlPoint2: NSPoint(x: 4.0, y: 7.3))
-        trails.move(to: NSPoint(x: 2.8, y: 5.6))
+        trails.move(to: NSPoint(x: 1.4, y: 7.0))
+        trails.curve(to: NSPoint(x: 4.8, y: 8.1), controlPoint1: NSPoint(x: 2.6, y: 6.8), controlPoint2: NSPoint(x: 3.8, y: 7.2))
+        trails.move(to: NSPoint(x: 2.4, y: 5.4))
         trails.curve(to: NSPoint(x: 6.0, y: 6.8), controlPoint1: NSPoint(x: 4.0, y: 5.5), controlPoint2: NSPoint(x: 5.0, y: 5.9))
         NSColor.labelColor.setStroke()
         trails.lineCapStyle = .round
@@ -1310,6 +1284,13 @@ final class PlaneBannerView: NSView {
         case lowCruise
         case swoopUp
         case swoopDown
+    }
+
+    private enum VehicleEdge {
+        case left
+        case right
+        case top
+        case bottom
     }
 
     private let event: ReminderEvent
@@ -1477,7 +1458,12 @@ final class PlaneBannerView: NSView {
         }
 
         let bannerWidth = max(340, min(max(textWidth + 72, chipWidth + 54), min(760, bounds.width * 0.56)))
-        return bannerWidth + 178
+        switch vehicleEdge {
+        case .top, .bottom:
+            return max(150, bannerWidth + 36)
+        case .left, .right:
+            return bannerWidth + 178
+        }
     }
 
     private func easeInOut(_ value: CGFloat) -> CGFloat {
@@ -1593,20 +1579,27 @@ final class PlaneBannerView: NSView {
     }
 
     private func drawVehicle(in bounds: NSRect) {
-        if vehicleOnLeft {
-            guard let graphicsContext = NSGraphicsContext.current else { return }
-            graphicsContext.saveGraphicsState()
-            let transform = NSAffineTransform()
-            transform.translateX(by: bounds.midX, yBy: bounds.midY)
+        guard let graphicsContext = NSGraphicsContext.current else { return }
+
+        graphicsContext.saveGraphicsState()
+        let transform = NSAffineTransform()
+        transform.translateX(by: bounds.midX, yBy: bounds.midY)
+
+        switch vehicleEdge {
+        case .left:
             transform.scaleX(by: -1, yBy: 1)
-            transform.translateX(by: -bounds.midX, yBy: -bounds.midY)
-            transform.concat()
-            drawVehicleShape(in: bounds)
-            graphicsContext.restoreGraphicsState()
-            return
+        case .top:
+            transform.rotate(byDegrees: 90)
+        case .bottom:
+            transform.rotate(byDegrees: -90)
+        case .right:
+            break
         }
 
+        transform.translateX(by: -bounds.midX, yBy: -bounds.midY)
+        transform.concat()
         drawVehicleShape(in: bounds)
+        graphicsContext.restoreGraphicsState()
     }
 
     private func drawVehicleShape(in bounds: NSRect) {
@@ -1624,8 +1617,17 @@ final class PlaneBannerView: NSView {
         }
     }
 
-    private var vehicleOnLeft: Bool {
-        direction == .rightToLeft
+    private var vehicleEdge: VehicleEdge {
+        switch direction {
+        case .rightToLeft:
+            return .left
+        case .topToBottom:
+            return .bottom
+        case .bottomToTop:
+            return .top
+        case .leftToRight, .random:
+            return .right
+        }
     }
 
     private func drawPlane(in bounds: NSRect) {
@@ -1751,12 +1753,23 @@ final class PlaneBannerView: NSView {
     }
 
     private func drawBanner(in bounds: NSRect) {
-        let vehicleRect = vehicleOnLeft
-            ? NSRect(x: bounds.minX + 12, y: bounds.midY - 45, width: 112, height: 90)
-            : NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
-        let bannerRect = vehicleOnLeft
-            ? NSRect(x: bounds.minX + 144, y: bounds.midY - 38, width: bounds.width - 162, height: 76)
-            : NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 178, height: 76)
+        let vehicleRect: NSRect
+        let bannerRect: NSRect
+
+        switch vehicleEdge {
+        case .left:
+            vehicleRect = NSRect(x: bounds.minX + 12, y: bounds.midY - 45, width: 112, height: 90)
+            bannerRect = NSRect(x: bounds.minX + 144, y: bounds.midY - 38, width: bounds.width - 162, height: 76)
+        case .right:
+            vehicleRect = NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
+            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 178, height: 76)
+        case .top:
+            vehicleRect = NSRect(x: bounds.midX - 56, y: bounds.maxY - 100, width: 112, height: 90)
+            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.minY + 8, width: bounds.width - 36, height: 76)
+        case .bottom:
+            vehicleRect = NSRect(x: bounds.midX - 56, y: bounds.minY + 10, width: 112, height: 90)
+            bannerRect = NSRect(x: bounds.minX + 18, y: bounds.maxY - 84, width: bounds.width - 36, height: 76)
+        }
 
         let shadowRect = bannerRect.offsetBy(dx: 0, dy: -7)
         let shadow = NSBezierPath(roundedRect: shadowRect, xRadius: 16, yRadius: 16)
@@ -1764,7 +1777,8 @@ final class PlaneBannerView: NSView {
         shadow.fill()
 
         let rope = NSBezierPath()
-        if vehicleOnLeft {
+        switch vehicleEdge {
+        case .left:
             rope.move(to: NSPoint(x: bannerRect.minX, y: bannerRect.midY + 12))
             rope.curve(
                 to: NSPoint(x: vehicleRect.maxX - 10, y: vehicleRect.midY + 6),
@@ -1777,7 +1791,7 @@ final class PlaneBannerView: NSView {
                 controlPoint1: NSPoint(x: bannerRect.minX - 22, y: bannerRect.midY - 24),
                 controlPoint2: NSPoint(x: vehicleRect.maxX + 22, y: vehicleRect.midY - 22)
             )
-        } else {
+        case .right:
             rope.move(to: NSPoint(x: bannerRect.maxX, y: bannerRect.midY + 12))
             rope.curve(
                 to: NSPoint(x: vehicleRect.minX + 10, y: vehicleRect.midY + 6),
@@ -1789,6 +1803,32 @@ final class PlaneBannerView: NSView {
                 to: NSPoint(x: vehicleRect.minX + 10, y: vehicleRect.midY - 6),
                 controlPoint1: NSPoint(x: bannerRect.maxX + 22, y: bannerRect.midY - 24),
                 controlPoint2: NSPoint(x: vehicleRect.minX - 22, y: vehicleRect.midY - 22)
+            )
+        case .top:
+            rope.move(to: NSPoint(x: bannerRect.midX - 26, y: bannerRect.maxY))
+            rope.curve(
+                to: NSPoint(x: vehicleRect.midX - 16, y: vehicleRect.minY + 8),
+                controlPoint1: NSPoint(x: bannerRect.midX - 32, y: bannerRect.maxY + 18),
+                controlPoint2: NSPoint(x: vehicleRect.midX - 32, y: vehicleRect.minY - 12)
+            )
+            rope.move(to: NSPoint(x: bannerRect.midX + 26, y: bannerRect.maxY))
+            rope.curve(
+                to: NSPoint(x: vehicleRect.midX + 16, y: vehicleRect.minY + 8),
+                controlPoint1: NSPoint(x: bannerRect.midX + 32, y: bannerRect.maxY + 18),
+                controlPoint2: NSPoint(x: vehicleRect.midX + 32, y: vehicleRect.minY - 12)
+            )
+        case .bottom:
+            rope.move(to: NSPoint(x: bannerRect.midX - 26, y: bannerRect.minY))
+            rope.curve(
+                to: NSPoint(x: vehicleRect.midX - 16, y: vehicleRect.maxY - 8),
+                controlPoint1: NSPoint(x: bannerRect.midX - 32, y: bannerRect.minY - 18),
+                controlPoint2: NSPoint(x: vehicleRect.midX - 32, y: vehicleRect.maxY + 12)
+            )
+            rope.move(to: NSPoint(x: bannerRect.midX + 26, y: bannerRect.minY))
+            rope.curve(
+                to: NSPoint(x: vehicleRect.midX + 16, y: vehicleRect.maxY - 8),
+                controlPoint1: NSPoint(x: bannerRect.midX + 32, y: bannerRect.minY - 18),
+                controlPoint2: NSPoint(x: vehicleRect.midX + 32, y: vehicleRect.maxY + 12)
             )
         }
         NSColor(calibratedWhite: 0.12, alpha: 0.72).setStroke()
