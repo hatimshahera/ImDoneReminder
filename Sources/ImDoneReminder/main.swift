@@ -1722,11 +1722,11 @@ final class PlaneBannerView: NSView {
 
     private func drawBanner(in bounds: NSRect) {
         let planeRect = NSRect(x: bounds.maxX - 124, y: bounds.midY - 45, width: 112, height: 90)
-        let bannerRect = NSRect(x: bounds.minX + 18, y: bounds.midY - 45, width: bounds.width - 178, height: 90)
+        let bannerRect = NSRect(x: bounds.minX + 18, y: bounds.midY - 38, width: bounds.width - 178, height: 76)
 
-        let shadowRect = bannerRect.offsetBy(dx: 0, dy: -9)
+        let shadowRect = bannerRect.offsetBy(dx: 0, dy: -7)
         let shadow = NSBezierPath(roundedRect: shadowRect, xRadius: 16, yRadius: 16)
-        NSColor.black.withAlphaComponent(0.26).setFill()
+        NSColor.black.withAlphaComponent(0.18).setFill()
         shadow.fill()
 
         let rope = NSBezierPath()
@@ -1747,102 +1747,110 @@ final class PlaneBannerView: NSView {
         rope.stroke()
 
         let banner = NSBezierPath(roundedRect: bannerRect, xRadius: 16, yRadius: 16)
-        NSColor(calibratedRed: 0.99, green: 0.995, blue: 1.0, alpha: 0.98).setFill()
+        NSColor(calibratedRed: 1.0, green: 0.985, blue: 0.90, alpha: 0.98).setFill()
         banner.fill()
-        accentColor.withAlphaComponent(0.72).setStroke()
-        banner.lineWidth = 2.5
+        accentColor.setStroke()
+        banner.lineWidth = 3
         banner.stroke()
 
         let accentStripe = NSBezierPath(
-            roundedRect: NSRect(x: bannerRect.minX, y: bannerRect.minY, width: 18, height: bannerRect.height),
-            xRadius: 9,
-            yRadius: 9
+            roundedRect: NSRect(x: bannerRect.minX + 10, y: bannerRect.minY + 10, width: 14, height: bannerRect.height - 20),
+            xRadius: 7,
+            yRadius: 7
         )
         chatColor.setFill()
         accentStripe.fill()
 
-        let contentMinX = bannerRect.minX + 38
-        let contentWidth = bannerRect.width - 58
+        let chipParagraph = NSMutableParagraphStyle()
+        chipParagraph.alignment = .center
+        var chipX = bannerRect.minX + 38
+        if settings.showSource {
+            let sourceChipRect = NSRect(x: chipX, y: bannerRect.maxY - 29, width: min(128, max(76, CGFloat(event.sourceLabel.count * 10 + 34))), height: 22)
+            let chip = NSBezierPath(roundedRect: sourceChipRect, xRadius: 11, yRadius: 11)
+            accentColor.withAlphaComponent(0.16).setFill()
+            chip.fill()
 
-        let titleParagraph = NSMutableParagraphStyle()
-        titleParagraph.alignment = .left
-        titleParagraph.lineBreakMode = .byTruncatingTail
+            event.sourceLabel.uppercased().draw(in: sourceChipRect.insetBy(dx: 10, dy: 4), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .heavy),
+                .foregroundColor: accentColor,
+                .paragraphStyle: chipParagraph
+            ])
+            chipX = sourceChipRect.maxX + 8
+        }
 
-        let titleText = bannerLine
-        let titleFont = fittingFont(for: titleText, width: contentWidth, preferredSize: settings.textSize, minimumSize: 17)
-        let titleAttributes: [NSAttributedString.Key: Any] = [
-            .font: titleFont,
-            .foregroundColor: NSColor(calibratedWhite: 0.055, alpha: 1),
-            .paragraphStyle: titleParagraph
+        let chatChipText = chatChipText()
+        if !chatChipText.isEmpty {
+            let chatChipRect = NSRect(x: chipX, y: bannerRect.maxY - 29, width: min(210, max(72, CGFloat(chatChipText.count * 7 + 38))), height: 22)
+            let chatChip = NSBezierPath(roundedRect: chatChipRect, xRadius: 11, yRadius: 11)
+            chatColor.withAlphaComponent(0.18).setFill()
+            chatChip.fill()
+
+            let dot = NSBezierPath(ovalIn: NSRect(x: chatChipRect.minX + 8, y: chatChipRect.midY - 4, width: 8, height: 8))
+            chatColor.setFill()
+            dot.fill()
+
+            chatChipText.draw(in: NSRect(x: chatChipRect.minX + 22, y: chatChipRect.minY + 4, width: chatChipRect.width - 30, height: 14), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 10, weight: .semibold),
+                .foregroundColor: NSColor(calibratedWhite: 0.12, alpha: 0.88),
+                .paragraphStyle: chipParagraph
+            ])
+        }
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .left
+        paragraph.lineBreakMode = .byTruncatingMiddle
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: settings.textSize, weight: .bold),
+            .foregroundColor: NSColor(calibratedWhite: 0.1, alpha: 1),
+            .paragraphStyle: paragraph
         ]
 
-        let titleRect = NSRect(x: contentMinX, y: bannerRect.minY + 31, width: contentWidth, height: 34)
-        titleText.draw(in: titleRect, withAttributes: titleAttributes)
-
-        let metadata = metadataLine
-        if !metadata.isEmpty {
-            let metaParagraph = NSMutableParagraphStyle()
-            metaParagraph.alignment = .left
-            metaParagraph.lineBreakMode = .byTruncatingTail
-            let metaAttributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
-                .foregroundColor: NSColor(calibratedWhite: 0.22, alpha: 0.78),
-                .paragraphStyle: metaParagraph
-            ]
-            let metaRect = NSRect(x: contentMinX, y: bannerRect.minY + 15, width: contentWidth, height: 16)
-            metadata.draw(in: metaRect, withAttributes: metaAttributes)
-        }
+        let textRect = NSRect(x: bannerRect.minX + 38, y: bannerRect.minY + 13, width: bannerRect.width - 58, height: 32)
+        bannerLine.draw(in: textRect, withAttributes: attributes)
     }
 
     private var bannerLine: String {
-        var parts: [String] = []
+        var lead: [String] = []
+        if settings.showSource {
+            lead.append(event.sourceLabel.capitalized)
+        }
         if settings.showEvent {
-            parts.append(event.eventLabel.capitalized)
+            lead.append(event.eventLabel)
         }
 
+        var line = lead.joined(separator: " ")
         if settings.showChatLabel {
-            parts.append(event.privacySafeChatLabel)
+            if line.isEmpty {
+                line = event.privacySafeChatLabel
+            } else {
+                line += ": \(event.privacySafeChatLabel)"
+            }
         }
 
         if settings.showDetail, let detail = event.detail?.trimmingCharacters(in: .whitespacesAndNewlines), !detail.isEmpty {
-            parts.append(detail)
+            line = line.isEmpty ? detail : "\(line) - \(detail)"
         }
 
-        if parts.isEmpty {
-            if settings.showSource {
-                return event.sourceLabel.capitalized
-            }
+        if line.isEmpty {
             if settings.showChatCode {
                 return event.chatCode
             }
             return event.eventLabel.capitalized
         }
 
-        return parts.joined(separator: " - ")
+        return line
     }
 
-    private var metadataLine: String {
+    private func chatChipText() -> String {
         var parts: [String] = []
-        if settings.showSource {
-            parts.append(event.sourceLabel.uppercased())
-        }
         if settings.showChatCode {
             parts.append(event.chatCode)
         }
-        return parts.joined(separator: "  /  ")
-    }
-
-    private func fittingFont(for text: String, width: CGFloat, preferredSize: CGFloat, minimumSize: CGFloat) -> NSFont {
-        var size = preferredSize
-        while size > minimumSize {
-            let font = NSFont.systemFont(ofSize: size, weight: .bold)
-            let measured = (text as NSString).size(withAttributes: [.font: font]).width
-            if measured <= width {
-                return font
-            }
-            size -= 1
+        if settings.showChatLabel {
+            parts.append(event.privacySafeChatLabel)
         }
-        return NSFont.systemFont(ofSize: minimumSize, weight: .bold)
+        return parts.joined(separator: " ")
     }
 
     private var accentColor: NSColor {
