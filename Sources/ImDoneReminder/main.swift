@@ -1192,29 +1192,55 @@ enum AppIconFactory {
         NSColor.clear.setFill()
         NSRect(x: 0, y: 0, width: 22, height: 22).fill()
 
-        let planeRect = NSRect(x: 2.5, y: 4.2, width: 17.5, height: 13.6)
         let plane = NSBezierPath()
-        plane.move(to: NSPoint(x: planeRect.minX + 0.8, y: planeRect.midY))
-        plane.line(to: NSPoint(x: planeRect.maxX - 0.8, y: planeRect.maxY - 1.2))
-        plane.line(to: NSPoint(x: planeRect.maxX - 4.8, y: planeRect.midY + 0.8))
-        plane.line(to: NSPoint(x: planeRect.maxX - 0.8, y: planeRect.minY + 1.2))
+        plane.move(to: NSPoint(x: 3.5, y: 11.5))
+        plane.line(to: NSPoint(x: 18.8, y: 17.2))
+        plane.curve(
+            to: NSPoint(x: 13.9, y: 5.1),
+            controlPoint1: NSPoint(x: 20.0, y: 17.7),
+            controlPoint2: NSPoint(x: 20.2, y: 16.7)
+        )
+        plane.line(to: NSPoint(x: 10.8, y: 8.4))
+        plane.line(to: NSPoint(x: 7.8, y: 4.4))
+        plane.curve(
+            to: NSPoint(x: 6.3, y: 5.1),
+            controlPoint1: NSPoint(x: 7.2, y: 3.7),
+            controlPoint2: NSPoint(x: 6.3, y: 4.1)
+        )
+        plane.line(to: NSPoint(x: 5.6, y: 9.0))
+        plane.line(to: NSPoint(x: 3.2, y: 10.0))
+        plane.curve(
+            to: NSPoint(x: 3.5, y: 11.5),
+            controlPoint1: NSPoint(x: 2.3, y: 10.4),
+            controlPoint2: NSPoint(x: 2.5, y: 11.3)
+        )
         plane.close()
         NSColor.labelColor.setFill()
         plane.fill()
 
         let fold = NSBezierPath()
-        fold.move(to: NSPoint(x: planeRect.minX + 2.6, y: planeRect.midY))
-        fold.line(to: NSPoint(x: planeRect.maxX - 4.8, y: planeRect.midY + 0.8))
-        fold.line(to: NSPoint(x: planeRect.maxX - 7.6, y: planeRect.midY - 3.0))
+        fold.move(to: NSPoint(x: 8.0, y: 5.0))
+        fold.line(to: NSPoint(x: 12.5, y: 12.9))
+        fold.line(to: NSPoint(x: 7.1, y: 9.2))
         fold.lineJoinStyle = .round
         NSColor.controlBackgroundColor.withAlphaComponent(0.82).setStroke()
-        fold.lineWidth = 1.5
+        fold.lineWidth = 1.7
         fold.stroke()
 
+        let check = NSBezierPath()
+        check.move(to: NSPoint(x: 11.4, y: 9.4))
+        check.line(to: NSPoint(x: 13.0, y: 7.8))
+        check.line(to: NSPoint(x: 16.0, y: 12.0))
+        check.lineCapStyle = .round
+        check.lineJoinStyle = .round
+        NSColor.controlBackgroundColor.withAlphaComponent(0.82).setStroke()
+        check.lineWidth = 1.8
+        check.stroke()
+
         let trails = NSBezierPath()
-        trails.move(to: NSPoint(x: 1.4, y: 7.0))
-        trails.curve(to: NSPoint(x: 4.8, y: 8.1), controlPoint1: NSPoint(x: 2.6, y: 6.8), controlPoint2: NSPoint(x: 3.8, y: 7.2))
-        trails.move(to: NSPoint(x: 2.4, y: 5.4))
+        trails.move(to: NSPoint(x: 1.7, y: 7.2))
+        trails.curve(to: NSPoint(x: 5.1, y: 8.3), controlPoint1: NSPoint(x: 2.8, y: 7.0), controlPoint2: NSPoint(x: 4.0, y: 7.3))
+        trails.move(to: NSPoint(x: 2.8, y: 5.6))
         trails.curve(to: NSPoint(x: 6.0, y: 6.8), controlPoint1: NSPoint(x: 4.0, y: 5.5), controlPoint2: NSPoint(x: 5.0, y: 5.9))
         NSColor.labelColor.setStroke()
         trails.lineCapStyle = .round
